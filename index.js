@@ -1,7 +1,7 @@
 const Express = require("express");
 const MongoClient = require("mongodb").MongoClient;
 const cors = require("cors");
-const bcrypt = require("bcrypt");
+const bcrypt = require('bcryptjs');
 const jwt = require("jsonwebtoken");
 const path = require('path');
 
