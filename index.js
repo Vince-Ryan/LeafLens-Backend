@@ -403,11 +403,11 @@ app.delete("/remove-rice-variety", authenticateToken, async (req, res) => {
     }
 });
 
-//Endpoint for fetching user accounts
+// Endpoint for fetching user accounts
 app.get("/get-usernames", authenticateToken, async (req, res) => {
     try {
         const { userId } = req.user;
-        
+
         // Fetch the logged-in admin's data
         const loggedInAdmin = await database.collection("users").findOne({ _id: new ObjectId(userId) });
 
@@ -417,13 +417,17 @@ app.get("/get-usernames", authenticateToken, async (req, res) => {
 
         let users;
         if (loggedInAdmin.user_type === "main admin") {
-            // Main admin sees all users except himself
-            users = await database.collection("users").find({ username: { $ne: loggedInAdmin.username } }).toArray();
+            // Main admin sees all users except himself and those with status 'pending'
+            users = await database.collection("users").find({
+                username: { $ne: loggedInAdmin.username },
+                status: { $ne: "pending" } // Exclude users with 'pending' status
+            }).toArray();
         } else {
-            // Regular admin sees only farmers under them, excluding themselves
+            // Regular admin sees only farmers under them, excluding themselves and 'pending' users
             users = await database.collection("users").find({
                 under_by: loggedInAdmin.username,
-                username: { $ne: loggedInAdmin.username }  // Exclude logged-in admin
+                username: { $ne: loggedInAdmin.username }, // Exclude logged-in admin
+                status: { $ne: "pending" } // Exclude users with 'pending' status
             }).toArray();
         }
 
@@ -433,7 +437,6 @@ app.get("/get-usernames", authenticateToken, async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 });
-
 
 
 
@@ -796,11 +799,14 @@ app.get('/get-admin-users', async (req, res) => {
     }
 });
 
-//  Fetch All Users (Farmers & Admins)
+// Fetch Only Approved Farmers & Admins
 app.get('/get-users', async (req, res) => {
     try {
         const users = await database.collection("users")
-            .find({ user_type: { $in: ["farmer", "admin"] } })
+            .find({ 
+                user_type: { $in: ["farmer", "admin"] }, 
+                status: "approved" 
+            })
             .toArray();
 
         res.json(users);
@@ -808,6 +814,7 @@ app.get('/get-users', async (req, res) => {
         res.status(500).json({ message: "Error fetching users", error });
     }
 });
+
 
 //  Promote or Demote User
 app.post('/update-user', async (req, res) => {
