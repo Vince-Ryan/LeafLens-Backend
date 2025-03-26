@@ -739,14 +739,17 @@ app.get('/get-fertilizer-suggestion', authenticateToken, async (req, res) => {
         const userId = req.user.userId; // Assuming user ID is added to the token payload
         const resultCollection = database.collection('result');
 
-        // Find the user's result based on the userId
-        const userResult = await resultCollection.findOne({ userId });
+        // Find the latest result for the user, sorted by timestamp in descending order
+        const userResult = await resultCollection.findOne(
+            { userId },
+            { sort: { timestamp: -1 } } // Sorting in descending order (latest first)
+        );
 
         if (!userResult) {
             return res.status(404).json({ message: 'User result not found' });
         }
 
-        // Assuming the fertilizer suggestion is stored under the field 'fertilizerSuggestion'
+        // Assuming the fertilizer suggestion is stored under 'fertilizerSuggestions'
         const fertilizerSuggestion = userResult.fertilizerSuggestions;
 
         if (!fertilizerSuggestion) {
@@ -754,9 +757,8 @@ app.get('/get-fertilizer-suggestion', authenticateToken, async (req, res) => {
         }
 
         // Respond with the fertilizer suggestion
-        res.status(200).json({
-            suggestion: fertilizerSuggestion,
-        });
+        res.status(200).json({ suggestion: fertilizerSuggestion });
+
     } catch (error) {
         console.error('Error retrieving fertilizer suggestion:', error);
         res.status(500).json({ message: 'Internal server error' });
